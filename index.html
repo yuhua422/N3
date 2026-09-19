@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注音符號點選與雙區展示工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+        .bopomofo-btn {
+            transition: all 0.2s ease;
+        }
+        .bopomofo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .bopomofo-btn.active-initial {
+            background-color: #2563eb !important;
+            color: white !important;
+            border-color: #1d4ed8 !important;
+        }
+        .bopomofo-btn.active-final {
+            background-color: #059669 !important;
+            color: white !important;
+            border-color: #047857 !important;
+        }
+        .bopomofo-btn.active-comb {
+            background-color: #0d9488 !important;
+            color: white !important;
+            border-color: #0f766e !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <header class="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white shadow-lg py-6 px-4 text-center">
+        <h1 class="text-3xl font-bold tracking-wide">注音符號點選與雙區展示工具</h1>
+        <p class="text-blue-100 mt-2 text-sm md:text-base">自由點選多個聲符、單韻符與結合韻，即時對照上下雙區展示！</p>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 flex-grow max-w-5xl">
+        
+        <!-- Dual Display Section (Upper and Lower) -->
+        <section class="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-slate-200">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-slate-700 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    選取符號雙區展示板
+                </h2>
+                <div class="flex items-center gap-2">
+                    <button onclick="openSaveModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                        儲存組合 (至多10組)
+                    </button>
+                    <button onclick="openLoadModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        讀取/管理記憶組
+                    </button>
+                    <button onclick="clearAllSelections()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium px-4 py-2 rounded-xl text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        全部清除
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Upper Display Area (Initials) -->
+                <div class="bg-blue-50/60 rounded-xl p-5 border-2 border-dashed border-blue-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-100 px-2.5 py-1 rounded-md">上區：已選聲符</span>
+                        <span id="upper-count" class="text-xs text-blue-600 font-medium">已選 0 個</span>
+                    </div>
+                    <div id="upper-display" class="min-h-[70px] flex flex-wrap items-center gap-2 pt-1">
+                        <span class="text-slate-400 text-sm italic">請從下方點選聲符...</span>
+                    </div>
+                </div>
+
+                <!-- Lower Display Area (Finals & Combined Rhymes) -->
+                <div class="bg-emerald-50/60 rounded-xl p-5 border-2 border-dashed border-emerald-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md">下區：已選單韻符與結合韻</span>
+                        <span id="lower-count" class="text-xs text-emerald-600 font-medium">已選 0 個</span>
+                    </div>
+                    <div id="lower-display" class="min-h-[70px] flex flex-wrap items-center gap-2 pt-1">
+                        <span class="text-slate-400 text-sm italic">請從下方點選單韻符或結合韻...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-200 mb-6 bg-white rounded-t-xl shadow-sm">
+            <button onclick="switchTab('initials')" id="tab-initials" class="flex-1 py-3.5 px-4 text-center font-bold text-blue-600 border-b-2 border-blue-600 rounded-tl-xl transition flex items-center justify-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                聲符 (21個)
+            </button>
+            <button onclick="switchTab('finals')" id="tab-finals" class="flex-1 py-3.5 px-4 text-center font-bold text-slate-500 hover:text-emerald-600 border-b-2 border-transparent transition flex items-center justify-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                單韻符 (16個)
+            </button>
+            <button onclick="switchTab('combinations')" id="tab-combinations" class="flex-1 py-3.5 px-4 text-center font-bold text-slate-500 hover:text-teal-600 border-b-2 border-transparent rounded-tr-xl transition flex items-center justify-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+                結合韻 (22個)
+            </button>
+        </div>
+
+        <!-- Panel 1: Initials -->
+        <div id="panel-initials" class="space-y-4">
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">點選聲符（可複選）</h3>
+                    <button onclick="selectAllCategory('initials')" class="text-xs text-blue-600 hover:underline font-medium">全選 / 取消全選</button>
+                </div>
+                <div id="initials-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
+                    <!-- Dynamic buttons -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 2: Finals -->
+        <div id="panel-finals" class="hidden space-y-4">
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">點選單韻符（可複選）</h3>
+                    <button onclick="selectAllCategory('finals')" class="text-xs text-emerald-600 hover:underline font-medium">全選 / 取消全選</button>
+                </div>
+                <div id="finals-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    <!-- Dynamic buttons -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 3: Combined Rhymes -->
+        <div id="panel-combinations" class="hidden space-y-4">
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-100">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">點選結合韻（介符上下呈現，可複選）</h3>
+                    <button onclick="selectAllCategory('combinations')" class="text-xs text-teal-600 hover:underline font-medium">全選 / 取消全選</button>
+                </div>
+                <div id="combinations-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    <!-- Dynamic buttons -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Save Modal -->
+    <div id="save-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-scale-up">
+            <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                儲存目前符號組合
+            </h3>
+            <p class="text-sm text-slate-600">請為這組注音符號命名（上限 10 組記憶）：</p>
+            <input type="text" id="save-title-input" placeholder="例如：第1課常用聲韻符號" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" maxlength="30">
+            <div id="save-error" class="text-xs text-rose-500 hidden"></div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="closeSaveModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition">取消</button>
+                <button onclick="saveCurrentConfig()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md transition">確認儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Modal -->
+    <div id="load-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    讀取或管理記憶組 (<span id="saved-count-indicator">0</span>/10)
+                </h3>
+                <button onclick="closeLoadModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            </div>
+            <div id="saved-list-container" class="overflow-y-auto space-y-3 flex-grow pr-1">
+                <div class="text-center py-8 text-slate-400">載入中...</div>
+            </div>
+            <div class="flex justify-end pt-2 border-t">
+                <button onclick="closeLoadModal()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification / Message Box -->
+    <div id="msg-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center space-y-4">
+            <h4 id="msg-title" class="text-lg font-bold text-slate-800">提示訊息</h4>
+            <p id="msg-content" class="text-sm text-slate-600"></p>
+            <button onclick="closeMsgModal()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow transition">確定</button>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-12">
+        <p>注音符號點選與雙區展示工具 &copy; 2026 | 支援跨裝置雲端記憶十組符號展示</p>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = {
+            apiKey: "AIzaSyASeGu5IADzRlsj4i_vu28DYKJwxhDecGE",
+            authDomain: "read-4a507.firebaseapp.com",
+            projectId: "read-4a507",
+            storageBucket: "read-4a507.firebasestorage.app",
+            messagingSenderId: "813271089720",
+            appId: "1:813271089720:web:d77c81018ce465c28a1ccd",
+            measurementId: "G-Y96NQT1244"
+        };
+
+        let app, db, auth, userId = null;
+        let savedConfigs = [];
+        let isAuthReady = false;
+
+        async function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    try {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } catch (tokenErr) {
+                        console.warn("Custom token sign-in failed, falling back to anonymous auth:", tokenErr);
+                        await signInAnonymously(auth);
+                    }
+                } else {
+                    await signInAnonymously(auth);
+                }
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                isAuthReady = true;
+                console.log("Firebase initialized successfully. User ID:", userId);
+            } catch (err) {
+                console.error("Firebase init error:", err);
+            }
+        }
+
+        initFirebase();
+
+        window.openSaveModal = function() {
+            if (selectedInitials.size === 0 && selectedFinals.size === 0 && selectedCombinations.size === 0) {
+                showMsg("無法儲存", "目前沒有選取任何符號，請至少點選一個聲符或韻符！");
+                return;
+            }
+            document.getElementById('save-title-input').value = '';
+            document.getElementById('save-error').classList.add('hidden');
+            document.getElementById('save-modal').classList.remove('hidden');
+            document.getElementById('save-modal').classList.add('flex');
+        }
+
+        window.closeSaveModal = function() {
+            document.getElementById('save-modal').classList.remove('flex');
+            document.getElementById('save-modal').classList.add('hidden');
+        }
+
+        window.openLoadModal = async function() {
+            document.getElementById('load-modal').classList.remove('hidden');
+            document.getElementById('load-modal').classList.add('flex');
+            await fetchSavedConfigs();
+        }
+
+        window.closeLoadModal = function() {
+            document.getElementById('load-modal').classList.remove('flex');
+            document.getElementById('load-modal').classList.add('hidden');
+        }
+
+        window.showMsg = function(title, content) {
+            document.getElementById('msg-title').textContent = title;
+            document.getElementById('msg-content').textContent = content;
+            document.getElementById('msg-modal').classList.remove('hidden');
+            document.getElementById('msg-modal').classList.add('flex');
+        }
+
+        window.closeMsgModal = function() {
+            document.getElementById('msg-modal').classList.remove('flex');
+            document.getElementById('msg-modal').classList.add('hidden');
+        }
+
+        window.saveCurrentConfig = async function() {
+            if (!db) {
+                showMsg("連線中", "資料庫連線初始化中，請稍候再試一次。");
+                return;
+            }
+
+            const titleInput = document.getElementById('save-title-input').value.trim();
+            const errEl = document.getElementById('save-error');
+            if (!titleInput) {
+                errEl.textContent = "請輸入組別名稱！";
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // Using exact public path to guarantee cross-device synchronization
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'saved_configs');
+                const snapshot = await getDocs(colRef);
+                if (snapshot.size >= 10) {
+                    showMsg("容量上限", "您已達到 10 組記憶的上限！請先刪除部分舊的記憶組才能儲存新組合。");
+                    return;
+                }
+
+                const payload = {
+                    title: titleInput,
+                    initials: Array.from(selectedInitials),
+                    finals: Array.from(selectedFinals),
+                    combinations: Array.from(selectedCombinations),
+                    createdAt: new Date().toISOString(),
+                    creatorId: userId
+                };
+
+                await addDoc(colRef, payload);
+                closeSaveModal();
+                showMsg("儲存成功", `「${titleInput}」已成功儲存至跨裝置雲端記憶庫！`);
+            } catch (err) {
+                console.error("Save error:", err);
+                errEl.textContent = "儲存失敗，請檢查網路連線或權限設定。";
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        async function fetchSavedConfigs() {
+            const container = document.getElementById('saved-list-container');
+            const countIndicator = document.getElementById('saved-count-indicator');
+            container.innerHTML = `<div class="text-center py-8 text-slate-400">載入跨裝置雲端記憶中...</div>`;
+
+            if (!db) {
+                container.innerHTML = `<div class="text-center py-8 text-rose-500">資料庫尚未準備就緒</div>`;
+                return;
+            }
+
+            try {
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'saved_configs');
+                const snapshot = await getDocs(colRef);
+                savedConfigs = [];
+                snapshot.forEach(docSnap => {
+                    savedConfigs.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                countIndicator.textContent = savedConfigs.length;
+
+                if (savedConfigs.length === 0) {
+                    container.innerHTML = `<div class="text-center py-10 text-slate-400 italic">目前沒有儲存的雲端記憶組，點選符號並點擊「儲存組合」即可跨裝置同步！</div>`;
+                    return;
+                }
+
+                container.innerHTML = savedConfigs.map(item => {
+                    const initialsStr = item.initials && item.initials.length ? item.initials.join(' ') : '無';
+                    const finalsStr = item.finals && item.finals.length ? item.finals.join(' ') : '';
+                    const combsStr = item.combinations && item.combinations.length ? item.combinations.join(' ') : '';
+                    const lowerStr = [finalsStr, combsStr].filter(Boolean).join(' | ') || '無';
+
+                    return `
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-2 hover:bg-slate-100 transition">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-bold text-slate-800 text-base">${escapeHtml(item.title)}</h4>
+                                <div class="flex gap-2">
+                                    <button onclick="loadConfig('${item.id}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg shadow transition">讀取</button>
+                                    <button onclick="deleteConfig('${item.id}')" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-medium rounded-lg transition">刪除</button>
+                                </div>
+                            </div>
+                            <div class="text-xs text-slate-600 space-y-1 bg-white p-2.5 rounded-lg border border-slate-100">
+                                <div><span class="font-semibold text-blue-600">聲符：</span>${initialsStr}</div>
+                                <div><span class="font-semibold text-emerald-600">韻符：</span>${lowerStr}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error("Fetch error:", err);
+                container.innerHTML = `<div class="text-center py-8 text-rose-500">讀取雲端資料失敗，請檢查網路連線或稍後再試。</div>`;
+            }
+        }
+
+        window.loadConfig = function(id) {
+            const config = savedConfigs.find(c => c.id === id);
+            if (!config) return;
+
+            selectedInitials = new Set(config.initials || []);
+            selectedFinals = new Set(config.finals || []);
+            selectedCombinations = new Set(config.combinations || []);
+
+            updateActiveStates();
+            updateDisplayArea();
+            closeLoadModal();
+            showMsg("讀取成功", `已成功載入「${config.title}」！`);
+        }
+
+        window.deleteConfig = async function(id) {
+            if (!confirm("確定要刪除這組記憶嗎？")) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'saved_configs', id);
+                await deleteDoc(docRef);
+                await fetchSavedConfigs();
+            } catch (err) {
+                console.error("Delete error:", err);
+                showMsg("刪除失敗", "無法刪除該筆資料，請稍後再試。");
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+
+    <script>
+        const initialsList = ['ㄅ', 'ㄆ', 'ㄇ', 'ㄈ', 'ㄉ', 'ㄊ', 'ㄋ', 'ㄌ', 'ㄍ', 'ㄎ', 'ㄏ', 'ㄐ', 'ㄑ', 'ㄒ', 'ㄓ', 'ㄔ', 'ㄕ', 'ㄖ', 'ㄗ', 'ㄘ', 'ㄙ'];
+        const finalsList = ['ㄚ', 'ㄛ', 'ㄜ', 'ㄝ', 'ㄞ', 'ㄟ', 'ㄠ', 'ㄡ', 'ㄢ', 'ㄣ', 'ㄤ', 'ㄥ', 'ㄦ', 'ㄧ', 'ㄨ', 'ㄩ'];
+        const combinationsList = ['ㄧㄚ', 'ㄧㄛ', 'ㄧㄝ', 'ㄧㄞ', 'ㄧㄠ', 'ㄧㄡ', 'ㄧㄢ', 'ㄧㄣ', 'ㄧㄤ', 'ㄧㄥ', 'ㄨㄚ', 'ㄨㄛ', 'ㄨㄞ', 'ㄨㄟ', 'ㄨㄢ', 'ㄨㄣ', 'ㄨㄤ', 'ㄨㄥ', 'ㄩㄝ', 'ㄩㄢ', 'ㄩㄣ', 'ㄩㄥ'];
+
+        let selectedInitials = new Set();
+        let selectedFinals = new Set(); // Stores single finals
+        let selectedCombinations = new Set(); // Stores combined rhymes
+
+        function renderGrids() {
+            // Render Initials
+            const initialsGrid = document.getElementById('initials-grid');
+            initialsGrid.innerHTML = initialsList.map(symbol => `
+                <button onclick="toggleSymbol('initials', '${symbol}')" id="init-${symbol}" class="bopomofo-btn bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-blue-50">
+                    <span class="text-2xl font-bold text-slate-800">${symbol}</span>
+                </button>
+            `).join('');
+
+            // Render Finals
+            const finalsGrid = document.getElementById('finals-grid');
+            finalsGrid.innerHTML = finalsList.map(symbol => `
+                <button onclick="toggleSymbol('finals', '${symbol}')" id="final-${symbol}" class="bopomofo-btn bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-emerald-50">
+                    <span class="text-2xl font-bold text-slate-800">${symbol}</span>
+                </button>
+            `).join('');
+
+            // Render Combined Rhymes (displaying medial and final stacked vertically inside button)
+            const combinationsGrid = document.getElementById('combinations-grid');
+            combinationsGrid.innerHTML = combinationsList.map(symbol => {
+                const medial = symbol[0];
+                const finalPart = symbol.slice(1);
+                return `
+                <button onclick="toggleSymbol('combinations', '${symbol}')" id="comb-${symbol}" class="bopomofo-btn bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center hover:bg-teal-50">
+                    <div class="flex flex-col items-center leading-tight font-bold text-slate-800 text-xl">
+                        <span>${medial}</span>
+                        <span>${finalPart}</span>
+                    </div>
+                </button>
+            `;
+            }).join('');
+        }
+
+        function toggleSymbol(category, symbol) {
+            if (category === 'initials') {
+                if (selectedInitials.has(symbol)) selectedInitials.delete(symbol);
+                else selectedInitials.add(symbol);
+            } else if (category === 'finals') {
+                if (selectedFinals.has(symbol)) selectedFinals.delete(symbol);
+                else selectedFinals.add(symbol);
+            } else if (category === 'combinations') {
+                if (selectedCombinations.has(symbol)) selectedCombinations.delete(symbol);
+                else selectedCombinations.add(symbol);
+            }
+            updateActiveStates();
+            updateDisplayArea();
+        }
+
+        window.updateActiveStates = function() {
+            // Update Initials Buttons
+            initialsList.forEach(symbol => {
+                const el = document.getElementById(`init-${symbol}`);
+                if (el) {
+                    el.className = selectedInitials.has(symbol)
+                        ? "bopomofo-btn active-initial border rounded-xl p-4 flex flex-col items-center justify-center shadow-md"
+                        : "bopomofo-btn bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-blue-50";
+                }
+            });
+
+            // Update Finals Buttons
+            finalsList.forEach(symbol => {
+                const el = document.getElementById(`final-${symbol}`);
+                if (el) {
+                    el.className = selectedFinals.has(symbol)
+                        ? "bopomofo-btn active-final border rounded-xl p-4 flex flex-col items-center justify-center shadow-md"
+                        : "bopomofo-btn bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-emerald-50";
+                }
+            });
+
+            // Update Combinations Buttons
+            combinationsList.forEach(symbol => {
+                const el = document.getElementById(`comb-${symbol}`);
+                if (el) {
+                    el.className = selectedCombinations.has(symbol)
+                        ? "bopomofo-btn active-comb border rounded-xl p-3 flex flex-col items-center justify-center shadow-md text-white"
+                        : "bopomofo-btn bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center hover:bg-teal-50";
+                }
+            });
+        }
+
+        window.updateDisplayArea = function() {
+            const upperDisplay = document.getElementById('upper-display');
+            const lowerDisplay = document.getElementById('lower-display');
+            const upperCount = document.getElementById('upper-count');
+            const lowerCount = document.getElementById('lower-count');
+
+            // Render Upper Section (Initials)
+            if (selectedInitials.size === 0) {
+                upperDisplay.innerHTML = `<span class="text-slate-400 text-sm italic">請從下方點選聲符...</span>`;
+                upperCount.textContent = "已選 0 個";
+            } else {
+                upperCount.textContent = `已選 ${selectedInitials.size} 個`;
+                upperDisplay.innerHTML = Array.from(selectedInitials).map(symbol => `
+                    <div class="bg-blue-600 text-white font-bold text-xl px-4 py-2 rounded-xl shadow-sm flex items-center gap-2 transition animate-fade-in">
+                        <span>${symbol}</span>
+                        <button onclick="event.stopPropagation(); toggleSymbol('initials', '${symbol}')" class="text-blue-200 hover:text-white text-sm font-normal ml-1">×</button>
+                    </div>
+                `).join('');
+            }
+
+            // Render Lower Section (Finals & Combined Rhymes)
+            const totalLowerCount = selectedFinals.size + selectedCombinations.size;
+            if (totalLowerCount === 0) {
+                lowerDisplay.innerHTML = `<span class="text-slate-400 text-sm italic">請從下方點選單韻符或結合韻...</span>`;
+                lowerCount.textContent = "已選 0 個";
+            } else {
+                lowerCount.textContent = `已選 ${totalLowerCount} 個`;
+                
+                let html = '';
+
+                // Render Single Finals if any
+                if (selectedFinals.size > 0) {
+                    html += `<div class="w-full mb-2"><span class="text-xs font-semibold text-emerald-700 block mb-1">單韻符區：</span><div class="flex flex-wrap gap-2">`;
+                    html += Array.from(selectedFinals).map(symbol => `
+                        <div class="bg-emerald-600 text-white font-bold text-xl px-4 py-2 rounded-xl shadow-sm flex items-center gap-2 transition animate-fade-in">
+                            <span>${symbol}</span>
+                            <button onclick="event.stopPropagation(); toggleSymbol('finals', '${symbol}')" class="text-emerald-200 hover:text-white text-sm font-normal ml-1">×</button>
+                        </div>
+                    `).join('');
+                    html += `</div></div>`;
+                }
+
+                // Render Combined Rhymes if any (medial and final stacked vertically)
+                if (selectedCombinations.size > 0) {
+                    html += `<div class="w-full"><span class="text-xs font-semibold text-teal-700 block mb-1">結合韻區（上下呈現）：</span><div class="flex flex-wrap gap-2">`;
+                    html += Array.from(selectedCombinations).map(symbol => {
+                        const medial = symbol[0];
+                        const finalPart = symbol.slice(1);
+                        return `
+                        <div class="bg-teal-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-2 transition animate-fade-in">
+                            <div class="flex flex-col items-center leading-tight text-xl">
+                                <span>${medial}</span>
+                                <span>${finalPart}</span>
+                            </div>
+                            <button onclick="event.stopPropagation(); toggleSymbol('combinations', '${symbol}')" class="text-teal-200 hover:text-white text-sm font-normal ml-2">×</button>
+                        </div>
+                    `;
+                    }).join('');
+                    html += `</div></div>`;
+                }
+
+                lowerDisplay.innerHTML = html;
+            }
+        }
+
+        window.clearAllSelections = function() {
+            selectedInitials.clear();
+            selectedFinals.clear();
+            selectedCombinations.clear();
+            updateActiveStates();
+            updateDisplayArea();
+        }
+
+        window.selectAllCategory = function(category) {
+            if (category === 'initials') {
+                if (selectedInitials.size === initialsList.length) selectedInitials.clear();
+                else initialsList.forEach(s => selectedInitials.add(s));
+            } else if (category === 'finals') {
+                const allSelected = finalsList.every(s => selectedFinals.has(s));
+                finalsList.forEach(s => {
+                    if (allSelected) selectedFinals.delete(s);
+                    else selectedFinals.add(s);
+                });
+            } else if (category === 'combinations') {
+                const allSelected = combinationsList.every(s => selectedCombinations.has(s));
+                combinationsList.forEach(s => {
+                    if (allSelected) selectedCombinations.delete(s);
+                    else selectedCombinations.add(s);
+                });
+            }
+            updateActiveStates();
+            updateDisplayArea();
+        }
+
+        window.switchTab = function(tabName) {
+            const tabs = ['initials', 'finals', 'combinations'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const panel = document.getElementById(`panel-${t}`);
+                if (t === tabName) {
+                    btn.className = "flex-1 py-3.5 px-4 text-center font-bold text-blue-600 border-b-2 border-blue-600 bg-white shadow-sm transition flex items-center justify-center gap-2";
+                    panel.classList.remove('hidden');
+                } else {
+                    btn.className = "flex-1 py-3.5 px-4 text-center font-bold text-slate-500 hover:text-emerald-600 border-b-2 border-transparent transition flex items-center justify-center gap-2";
+                    panel.classList.add('hidden');
+                }
+            });
+        }
+
+        window.onload = function() {
+            renderGrids();
+        };
+    </script>
+</body>
+</html>
